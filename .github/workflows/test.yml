@@ -20,3 +20,16 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: node --test
+
+  version-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check version is bumped
+        run: node ./bin/vertioner.js --base origin/${{ github.base_ref }}
