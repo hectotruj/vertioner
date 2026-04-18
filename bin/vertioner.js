@@ -1,31 +1,55 @@
 #!/usr/bin/env node
 
-const sh = require('shelljs');
+import { run } from '../lib/vertioner.js';
+import { parseArgs } from 'node:util';
 
-const packageJSON = JSON.parse(sh.cat('./package.json').stdout)
-const currentName = packageJSON.name
-const currentVersion = packageJSON.version
+const { values, positionals } = parseArgs({
+  options: {
+    base: { type: 'string', short: 'b', description: 'Base branch to compare against (default: auto-detect main/master)' },
+    strict: { type: 'boolean', short: 's', default: false, description: 'Require version to be strictly greater, not just different' },
+    help: { type: 'boolean', short: 'h', default: false },
+  },
+  allowPositionals: true,
+});
 
-if (!sh.which('git')) {
-    sh.echo('Sorry, this script requires git');
-    sh.exit(1);
+if (values.help) {
+  console.log(`
+  vertioner — verify package versions are bumped before merging
+
+  Usage:
+    vertioner [options] [path...]
+
+  Options:
+    -b, --base <branch>   Base branch to compare against (default: auto-detect)
+    -s, --strict          Require version to be strictly greater (semver)
+    -h, --help            Show this help message
+
+  Examples:
+    vertioner                     Check current directory
+    vertioner packages/foo        Check a specific package
+    vertioner packages/*          Check all packages (monorepo)
+    vertioner --base develop -s   Compare against 'develop', strict mode
+`);
+  process.exit(0);
 }
 
-const hasDiff = sh.exec('git diff --quiet master').code
+const result = run({
+  baseBranch: values.base,
+  paths: positionals.length > 0 ? positionals : undefined,
+  strict: values.strict,
+});
 
-if (hasDiff === 1) {
-    sh.echo(`Package '${currentName}' has diverged from master`)
-    const masterVersion = JSON.parse(sh.exec('git show master:./package.json', { silent: true })).version
-    if (currentVersion === masterVersion) {
-        sh.echo(`Current version of package '${currentName}' is the same as master. Please update your version.`);
-        sh.exit(1);
-    }
-
-    sh.echo(`Current version ${currentVersion}, master version: ${masterVersion}`)
-    sh.exit(0);
-
-} else {
-    sh.echo(`Package '${currentName}' has no differences with master`)
-    sh.exit(1);
+if (result.message) {
+  console.error(`✗ ${result.message}`);
+  process.exit(1);
 }
+
+const symbols = { ok: '✓', fail: '✗', skip: '⊘', unchanged: '—' };
+
+for (const r of result.results) {
+  const sym = symbols[r.status] ?? '?';
+  console.log(`  ${sym} ${r.name}: ${r.message}`);
+}
+
+process.exit(result.ok ? 0 : 1);
 

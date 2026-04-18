@@ -1,9 +1,10 @@
 {
   "name": "vertioner",
-  "version": "1.0.6",
-  "description": "A package to verify any directory containing a package.json file that has changed, has an updated package.json version.",
+  "version": "2.0.0",
+  "description": "Verify that packages with changes have bumped their version before merging. Supports monorepos.",
+  "type": "module",
   "scripts": {
-    "test": ""
+    "test": "node --test"
   },
   "repository": {
     "type": "git",
@@ -12,13 +13,16 @@
   "bin": {
     "vertioner": "./bin/vertioner.js"
   },
+  "engines": {
+    "node": ">=18.11.0"
+  },
   "keywords": [
     "node",
-    "versioning"
+    "versioning",
+    "semver",
+    "monorepo",
+    "ci"
   ],
   "author": "hectotruj@gmail.com",
-  "license": "MIT",
-  "dependencies": {
-    "shelljs": "^0.8.4"
-  }
+  "license": "MIT"
 }
