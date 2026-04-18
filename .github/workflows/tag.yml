@@ -1,15 +1,16 @@
-name: Tag on merge
+name: Tag and publish
 
 on:
   push:
     branches: [main, master]
 
-permissions:
-  contents: write
-
 jobs:
-  tag:
+  tag-and-publish:
     runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -19,13 +20,41 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Create tag if it doesn't exist
+      - name: Check if tag already exists
+        id: check
         run: |
           TAG="v${{ steps.pkg.outputs.version }}"
           if git ls-remote --tags origin "refs/tags/$TAG" | grep -q .; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
             echo "Tag $TAG already exists, skipping"
           else
-            git tag "$TAG"
-            git push origin "$TAG"
-            echo "Created and pushed tag $TAG"
+            echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Create tag
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          TAG="v${{ steps.pkg.outputs.version }}"
+          git tag "$TAG"
+          git push origin "$TAG"
+          echo "Created and pushed tag $TAG"
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.exists == 'false'
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Run tests
+        if: steps.check.outputs.exists == 'false'
+        run: node --test
+
+      - name: Publish to npm
+        if: steps.check.outputs.exists == 'false'
+        run: npm publish --provenance --access public
+
+      - name: Create GitHub release
+        if: steps.check.outputs.exists == 'false'
+        run: gh release create "v${{ steps.pkg.outputs.version }}" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
