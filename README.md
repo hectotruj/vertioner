@@ -1,5 +1,7 @@
 # Vertioner
 
+[![Tests](https://github.com/hectotruj/vertioner/actions/workflows/test.yml/badge.svg)](https://github.com/hectotruj/vertioner/actions/workflows/test.yml)
+
 Verify that packages with changes have bumped their `package.json` version before merging. Zero dependencies. Supports monorepos.
 
 ## Install
