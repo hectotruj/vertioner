@@ -1,6 +1,6 @@
 {
   "name": "vertioner",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Verify that packages with changes have bumped their version before merging. Supports monorepos.",
   "type": "module",
   "scripts": {
